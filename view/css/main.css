@@ -1937,6 +1937,7 @@ button.btn-sm.hamburger svg {
 
 .mainArea .galleryVideo {
     margin-bottom: 1em;
+    padding-bottom: 1em;
 }
 
 .ui-menu .ui-menu-item {
@@ -2003,6 +2004,14 @@ button.btn-sm.hamburger svg {
     min-height: 50px;
 }
 
+.HorizontalFlickity .carousel-cell {
+    display: none;
+}
+
+.HorizontalFlickity.flickity-enabled .carousel-cell {
+    display: block;
+}
+
 body.ypt-is-compressed #videoCol {
     width: 100%;
     overflow-x: hidden;
@@ -2013,7 +2022,7 @@ body.ypt-is-compressed #videoCol {
 #bigVideoCarousel .galleryVideoButtons button {
     display: inline-block;
 }
-
+/*
 #_avideoPageLoader{
     display: none !important;
 }
@@ -2021,3 +2030,4 @@ body.ypt-is-compressed #videoCol {
 #_avideoPageContent{
     display: unset !important;
 }
+*/

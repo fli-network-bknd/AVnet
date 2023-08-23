@@ -3,7 +3,14 @@ global $global;
 require_once $global['systemRootPath'] . 'plugin/Plugin.abstract.php';
 
 class Layout extends PluginAbstract {
-
+    static $criticalCSS = array(
+        'view/bootstrap/css/bootstrap.min.css',
+        'view/css/custom',
+        'videos/cache/custom.css',
+        'view/css/navbar.css',
+        'plugin/Gallery/style.css',
+        'view/css/main.css',
+    );
     static private $tags = array();
     static $searchOptions = array(
         array(
@@ -395,7 +402,7 @@ class Layout extends PluginAbstract {
             }
 
             $html .= '<li class="dropdown-submenu ' . $active . '">
-                    <a tabindex="-1" href="' . $url . '" value="' . $key . '" onclick="$(\'#div_' . $id . ' > button > span.flag\').html($(this).find(\'span.flag\').html());$(\'input[name=' . $name . ']\').val(\'' . $key . '\');">
+                    <a tabindex="-1" rel="nofollow" hreflang="' . $key . '" href="' . $url . '" value="' . $key . '" onclick="$(\'#div_' . $id . ' > button > span.flag\').html($(this).find(\'span.flag\').html());$(\'input[name=' . $name . ']\').val(\'' . $key . '\');">
                         <span class="flag"><i class="' . $info->icon . '" aria-hidden="true"></i></span> ' . $info->text . '</a>
                     </li>';
         }
@@ -594,6 +601,9 @@ class Layout extends PluginAbstract {
         //var_dump(self::$tags['tagscript']);exit;
         if (!empty(self::$tags['tagcss'])) {
             self::$tags['tagcss'] = self::removeDuplicated(self::$tags['tagcss']);
+            
+            usort(self::$tags['tagcss'], "_sortCSS");
+            
             $html = str_replace('</head>', PHP_EOL . implode(PHP_EOL, array_unique(self::$tags['tagcss'])) . '</head>', $html);
         }
         //return $html;
@@ -677,14 +687,6 @@ class Layout extends PluginAbstract {
 
     static function getTagsLinkCSS($html) {
         $nonCriticalCSS = ' rel="preload" media="print" as="style" onload="this.media=\'all\'" ';
-        $critical = array(
-            'view/bootstrap/css/bootstrap.min.css',
-            'view/css/custom/default.css',
-            'videos/cache/custom.css',
-            'view/css/main.css',
-            'plugin/Gallery/style.css',
-            'view/css/navbar.css'
-        );
         preg_match_all('/<link[^>]+href=[^>]+>/Usi', $html, $matches);
         if (!empty($matches)) {
             foreach ($matches[0] as $value) {
@@ -692,7 +694,7 @@ class Layout extends PluginAbstract {
                 if ($response['success']) {
                     if (strpos($value, 'rel="preload"') === false) {
                         $containsCritical = false;
-                        foreach ($critical as $crit) {
+                        foreach (self::$criticalCSS as $crit) {
                             if (strpos($value, $crit) !== false) {
                                 $containsCritical = true;
                                 break;
@@ -1125,5 +1127,24 @@ function _sortJS($a, $b) {
         "js/script.js",
         "/plugin/",
     ];
+    return compareOrder($a, $b, $firstOrder, $lastOrder);
+}
+
+function _sortCSS($a, $b) {
+    $firstOrder = array(
+        'view/bootstrap/css/bootstrap.min.css',
+        'view/css/custom',
+        'videos/cache/custom.css',
+        'view/css/navbar.css',
+        'plugin/Gallery/style.css',
+        'node_modules/animate.css/animate',
+        'view/css/main.css',
+    );
+    $lastOrder = array(
+        'node_modules/video.js/dist/video-js.min.css', 
+        'videojs',
+        'plugin/PlayerSkins/player.css',
+        'plugin/PlayerSkins/skins/', 
+    );;
     return compareOrder($a, $b, $firstOrder, $lastOrder);
 }

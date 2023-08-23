@@ -11,6 +11,19 @@ const CACHE_NAME = 'avideo-cache-ver-3.6';
 
 const staticAssetsCacheName = CACHE_NAME + '-static-assets';
 
+function hasCacheParameter(url) {
+    return url.includes('cache=');
+}
+
+function isRequestValid(request) {
+    return (!request.url.match(/\.php/) || request.url.match(/\.js.php/)) && (request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'image' ||
+    request.url.match(/\.map/) ||
+    request.url.match(/\.ico/) ||
+    request.url.match(/\.woff2/));
+}
+
 console.log('sw strategy CACHE_NAME', CACHE_NAME);
 
 self.addEventListener('install', (event) => {
@@ -30,60 +43,50 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     console.log('Service worker activated');
 });
-/*
-self.addEventListener('fetch', (event) => {
-    if (event.request.mode === 'navigate') {
-        console.log(`Service worker intercepted request: ${event.request.url}`);
-    }
-    console.log('fetch', event.request);
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            console.log(`Cache hit: ${event.request.url}`);
-            return cachedResponse;
-          }
-          console.log(`Cache miss: ${event.request.url}`);
-          return fetch(event.request);
+const cacheFirst = new workbox.strategies.CacheFirst({
+    cacheName: staticAssetsCacheName,
+    plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+            statuses: [0, 200]
         })
-      );
+    ]
 });
-*/
+
+const staleWhileRevalidate = new workbox.strategies.StaleWhileRevalidate({
+    cacheName: staticAssetsCacheName,
+    plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+            statuses: [0, 200]
+        })
+    ]
+});
+
+const networkFirst = new workbox.strategies.NetworkFirst({
+    cacheName: staticAssetsCacheName,
+    plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+            statuses: [0, 200]
+        })
+    ]
+});
+
 workbox.routing.registerRoute(
-    async ({ request }) => {
-        // Exclude GIF images
-        if (request.url.endsWith('.gif')) {
-            return false;
-        }
-
-        /*
-        // If the request is for an image, check its size
-        if (request.destination === 'image') {
-            const response = await fetch(request);
-            const contentLength = response.headers.get('Content-Length');
-
-            // If size is more than 600 KB, return false
-            if (contentLength && parseInt(contentLength, 10) > 600 * 1024) {
-                return false;
+    ({ request }) => isRequestValid(request),
+    async ({ request, event }) => {
+        try {
+            if (hasCacheParameter(request.url)) {
+                //console.log('cacheFirst', request.url);
+                return await cacheFirst.handle({ request, event });
+            } else {
+               // console.log('staleWhileRevalidate', request.url);
+                return await staleWhileRevalidate.handle({ request, event });
             }
-        }*/
-
-        return (request.destination === 'script' ||
-            request.destination === 'style' ||
-            request.destination === 'image' ||
-            request.url.match(/\.map/) ||
-            request.url.match(/\.woff2/));
-    },
-    new workbox.strategies.StaleWhileRevalidate({
-        cacheName: staticAssetsCacheName,
-        plugins: [
-            new workbox.cacheableResponse.CacheableResponsePlugin({
-                statuses: [0, 200]
-            })
-        ]
-    })
+        } catch (error) {
+            console.error('registerRoute networkFirst', request.url);
+            return await networkFirst.handle({ request, event });
+        }
+    }
 );
-
-
 workbox.routing.setCatchHandler(async ({ event }) => {
     console.log('setCatchHandler called', event.request.url);
     if (event.request.destination === 'document') {
